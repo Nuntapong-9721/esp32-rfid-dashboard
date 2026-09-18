@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ESP32 Access Control</title><link rel="stylesheet" href="style.css"></head>
+<body>
+<header class="top"><div><h1>ESP32 Access Control</h1><p>RFID Door & Attendance Dashboard</p></div><span id="conn" class="pill offline">● Offline</span></header>
+<nav><button class="nav active" data-page="dashboard">Dashboard</button><button class="nav" data-page="logs">Attendance</button><button class="nav" data-page="users">Users</button><button class="nav" data-page="settings">Settings</button></nav>
+<main>
+<section id="dashboard" class="page active"><div class="cards">
+<div class="card"><span>สถานะประตู</span><strong id="door">Locked</strong><small id="doorTime">พร้อมใช้งาน</small></div>
+<div class="card"><span>ESP32</span><strong id="esp">Offline</strong><small id="uptime">Uptime: -</small></div>
+<div class="card"><span>การสแกนวันนี้</span><strong id="today">0</strong><small>ครั้ง</small></div>
+<div class="card"><span>ผู้ใช้</span><strong id="userCount">0</strong><small>บัตรที่ลงทะเบียน</small></div></div>
+<div class="grid"><div class="panel"><h2>สถานะระบบ</h2><div class="statusrow"><span>RFID RC522</span><b class="ok">Ready</b></div><div class="statusrow"><span>Relay / Door Lock</span><b id="relayStatus">Locked</b></div><div class="statusrow"><span>Wi-Fi</span><b id="wifiStatus">Offline</b></div><div class="statusrow"><span>Google Sheets</span><b class="wait">Waiting</b></div></div>
+<div class="panel"><h2>การสแกนล่าสุด</h2><div id="recent"></div></div></div></section>
+<section id="logs" class="page"><div class="panel"><div class="toolbar"><h2>Attendance Logs</h2><button onclick="clearLogs()" class="danger">ล้างข้อมูล</button></div><input id="search" placeholder="ค้นหา UID หรือชื่อ..." oninput="renderLogs()"><div class="tablewrap"><table><thead><tr><th>เวลา</th><th>UID</th><th>ชื่อ</th><th>สถานะ</th><th>การทำงาน</th></tr></thead><tbody id="logBody"></tbody></table></div></div></section>
+<section id="users" class="page"><div class="panel"><div class="toolbar"><h2>RFID Users</h2><button onclick="addUser()" class="primary">+ เพิ่มผู้ใช้</button></div><div class="tablewrap"><table><thead><tr><th>ชื่อ</th><th>UID</th><th>สิทธิ์</th><th>จัดการ</th></tr></thead><tbody id="userBody"></tbody></table></div></div></section>
+<section id="settings" class="page"><div class="panel"><h2>ESP32 API Settings</h2><label>ESP32 IP Address</label><input id="espIp" placeholder="เช่น 192.168.1.50"><p class="hint">หน้าเว็บ GitHub Pages ไม่ควรเก็บรหัส Wi-Fi หรือข้อมูลลับไว้ในโค้ด</p><button onclick="saveSettings()" class="primary">บันทึก</button> <button onclick="testConnection()" class="secondary">ทดสอบการเชื่อมต่อ</button></div>
+<div class="panel"><h2>ฟังก์ชันระบบ</h2><ul><li>ดูสถานะประตูและ ESP32</li><li>ดูประวัติการสแกน RFID</li><li>จัดการรายชื่อผู้ใช้และ UID</li><li>ค้นหาประวัติการเข้าใช้งาน</li><li>รองรับ ESP32 REST API</li><li>รองรับ Google Sheets / GAS</li></ul></div></section>
+</main><footer>ESP32 Access Control • GitHub Pages Ready</footer><script src="script.js"></script></body></html>
