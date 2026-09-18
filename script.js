@@ -46,21 +46,6 @@ function espUrl(path){
   return "http://"+ip+path;
 }
 
-async function testConnection(){
-  let url=espUrl("/api/status");
-  if(!url){alert("ใส่ IP ของ ESP32 ก่อน");return;}
-  try{
-    let r=await fetch(url,{cache:"no-store"});
-    if(!r.ok)throw new Error("HTTP "+r.status);
-    let data=await r.json();
-    updateStatus(data);
-    setOnline(true);
-    alert("เชื่อมต่อสำเร็จ • "+(data.ip||"ESP32"));
-  }catch(e){
-    setOnline(false);
-    alert("เชื่อมต่อไม่ได้\n\nถ้า ESP32 ต่อ Wi-Fi แล้ว ให้เปิด "+url+" ในแท็บใหม่เพื่อทดสอบก่อน");
-  }
-}
 function setOnline(v){
   $("conn").textContent=v?"● Online":"● Offline";
   $("conn").className="pill "+(v?"online":"offline");
@@ -76,32 +61,71 @@ function updateStatus(data){
   $("uptime").textContent="Uptime: "+Math.floor((Number(data.uptime)||0)/1000)+"s";
 }
 
+async function testConnection(){
+  let url=espUrl("/api/status");
+  if(!url){alert("ใส่ IP ของ ESP32 ก่อน");return;}
+  try{
+    let r=await fetch(url,{cache:"no-store"});
+    if(!r.ok)throw new Error("HTTP "+r.status);
+    let data=await r.json();
+    updateStatus(data);
+    setOnline(true);
+    alert("เชื่อมต่อสำเร็จ • "+(data.ip||"ESP32"));
+    await syncLogs(true);
+  }catch(e){
+    setOnline(false);
+    alert("เชื่อมต่อไม่ได้\n\n"+e.message+"\n\nURL: "+url);
+  }
+}
+
 async function syncESP32(){
   let url=espUrl("/api/status");
   if(!url)return;
   try{
     let r=await fetch(url,{cache:"no-store"});
-    if(!r.ok)throw new Error();
-    updateStatus(await r.json());setOnline(true);
-    await syncLogs();
-  }catch(e){setOnline(false);}
+    if(!r.ok)throw new Error("HTTP "+r.status);
+    let data=await r.json();
+    updateStatus(data);setOnline(true);
+    await syncLogs(false);
+  }catch(e){
+    setOnline(false);
+    console.warn("[ESP32] Status error:",e);
+  }
 }
 
-async function syncLogs(){
+async function syncLogs(showError=false){
   let url=espUrl("/api/logs");
   if(!url)return;
   try{
     let r=await fetch(url,{cache:"no-store"});
-    if(!r.ok)throw new Error();
+    if(!r.ok)throw new Error("HTTP "+r.status);
     let remote=await r.json();
-    logs=remote.map(x=>({
-      uid:x.uid,time:new Date().toISOString(),name:(users.find(u=>u.uid===x.uid)||{}).name||"ไม่ระบุ",
-      granted:!!x.granted,action:"RFID Scan"
-    })).reverse();
-    save();renderAll();
-  }catch(e){}
+    if(!Array.isArray(remote))throw new Error("รูปแบบข้อมูล /api/logs ไม่ถูกต้อง");
+
+    logs=remote.map((x,i)=>{
+      let old=logs.find(y=>y.remoteIndex===i&&y.uid===x.uid);
+      return {
+        remoteIndex:i,
+        uid:x.uid,
+        time:old?.time||new Date(Date.now()-(remote.length-1-i)*1000).toISOString(),
+        name:(users.find(u=>u.uid.toUpperCase()===String(x.uid).toUpperCase())||{}).name||"ไม่ระบุ",
+        granted:!!x.granted,
+        action:"RFID Scan",
+        uptime:Number(x.uptime)||0
+      };
+    }).reverse();
+
+    save();
+    renderAll();
+
+    if(showError)alert("โหลดประวัติ RFID สำเร็จ • "+remote.length+" รายการ");
+  }catch(e){
+    console.error("[ESP32] Logs error:",e);
+    if(showError)alert("โหลด /api/logs ไม่สำเร็จ\n\n"+e.message+"\n\nURL: "+url);
+  }
 }
 
 $("espIp").value=localStorage.getItem("esp_ip")||"";
 renderAll();
 setInterval(syncESP32,5000);
+syncESP32();
